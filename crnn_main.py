@@ -19,8 +19,8 @@ parser.add_argument('--trainroot', required=True, help='path to dataset')
 parser.add_argument('--valroot', required=True, help='path to dataset')
 parser.add_argument('--workers', type=int, help='number of data loading workers', default=2)
 parser.add_argument('--batchSize', type=int, default=64, help='input batch size')
-parser.add_argument('--imgH', type=int, default=64, help='the height / width of the input image to network')
-parser.add_argument('--nh', type=int, default=100, help='size of the lstm hidden state')
+parser.add_argument('--imgH', type=int, default=32, help='the height / width of the input image to network')
+parser.add_argument('--nh', type=int, default=256, help='size of the lstm hidden state')
 parser.add_argument('--niter', type=int, default=25, help='number of epochs to train for')
 parser.add_argument('--lr', type=float, default=1, help='learning rate for Critic, default=0.00005')
 parser.add_argument('--beta1', type=float, default=0.5, help='beta1 for adam. default=0.5')
@@ -153,7 +153,7 @@ def val(net, dataset, criterion, max_iter=100):
         loss_avg.add(cost)
 
         _, preds = preds.max(2)
-        preds = preds.squeeze(2)
+        # preds = preds.squeeze(2)
         preds = preds.transpose(1, 0).contiguous().view(-1)
         sim_preds = converter.decode(preds.data, preds_size.data, raw=False)
         for pred, target in zip(sim_preds, cpu_texts):
@@ -161,9 +161,12 @@ def val(net, dataset, criterion, max_iter=100):
                 n_correct += 1
 
     raw_preds = converter.decode(preds.data, preds_size.data, raw=True)
+    cnt = 0
     for raw_pred, pred, gt in zip(raw_preds, sim_preds, cpu_texts):
         print('%-20s => %-20s, gt: %-20s' % (raw_pred, pred, gt))
-
+        cnt += 1
+        if cnt > 10:
+            break
     accuracy = n_correct / float(max_iter * opt.batchSize)
     print('Test loss: %f, accuray: %f' % (loss_avg.val(), accuracy))
 
@@ -187,6 +190,7 @@ def trainBatch(net, criterion, optimizer):
 
 
 for epoch in range(opt.niter):
+    # val(crnn, test_dataset, criterion)
     train_iter = iter(train_loader)
     i = 0
     while i < len(train_loader):

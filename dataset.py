@@ -17,8 +17,10 @@ import os.path as osp
 class lmdbDataset(Dataset):
 
     def __init__(self, root=None, transform=None, target_transform=None):
-        self.data_dir = osp.join(root, 'corpped_img')
+        self.data_dir = osp.join(root, 'cropped_img')
         self.info = open(osp.join(root, 'img_gt.txt')).read().strip().split('\n')
+        for info in self.info:
+            assert len(info.strip().split()) == 2, info
         self.transform = transform
         self.target_transform = target_transform
 
@@ -28,7 +30,8 @@ class lmdbDataset(Dataset):
     def __getitem__(self, index):
         assert index < len(self), 'index range error'
         name, label = self.info[index].strip().split()
-        img = misc.imread(osp.join(self.data_dir, name))
+        # img = misc.imread(osp.join(self.data_dir, name))
+        img = Image.open(osp.join(self.data_dir, name)).convert('L')
         if self.transform:
             img = self.transform(img)
         if self.target_transform:
@@ -62,12 +65,12 @@ class randomSequentialSampler(sampler.Sampler):
         index = torch.LongTensor(len(self)).fill_(0)
         for i in range(n_batch):
             random_start = random.randint(0, len(self) - self.batch_size)
-            batch_index = random_start + torch.range(0, self.batch_size - 1)
+            batch_index = random_start + torch.arange(0, self.batch_size)
             index[i * self.batch_size:(i + 1) * self.batch_size] = batch_index
         # deal with tail
         if tail:
             random_start = random.randint(0, len(self) - self.batch_size)
-            tail_index = random_start + torch.range(0, tail - 1)
+            tail_index = random_start + torch.arange(0, tail)
             index[(i + 1) * self.batch_size:] = tail_index
 
         return iter(index)
@@ -78,7 +81,7 @@ class randomSequentialSampler(sampler.Sampler):
 
 class alignCollate(object):
 
-    def __init__(self, imgH=32, imgW=128, keep_ratio=False, min_ratio=1):
+    def __init__(self, imgH=32, imgW=100, keep_ratio=False, min_ratio=1):
         self.imgH = imgH
         self.imgW = imgW
         self.keep_ratio = keep_ratio
@@ -102,5 +105,4 @@ class alignCollate(object):
         transform = resizeNormalize((imgW, imgH))
         images = [transform(image) for image in images]
         images = torch.cat([t.unsqueeze(0) for t in images], 0)
-
         return images, labels

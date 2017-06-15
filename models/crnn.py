@@ -1,5 +1,5 @@
 import torch.nn as nn
-import utils
+import models.utils as utils
 
 
 class BidirectionalLSTM(nn.Module):
@@ -75,8 +75,11 @@ class CRNN(nn.Module):
 
     def forward(self, input):
         # conv features
+        # print(input.size())
         conv = utils.data_parallel(self.cnn, input, self.ngpu)
+        # print(conv)
         b, c, h, w = conv.size()
+        # print(conv.size())
         assert h == 1, "the height of conv must be 1"
         conv = conv.squeeze(2)
         conv = conv.permute(2, 0, 1)  # [w, b, c]
