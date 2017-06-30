@@ -21,6 +21,7 @@ class lmdbDataset(Dataset):
         self.info = open(osp.join(root, 'img_gt.txt')).read().strip().split('\n')
         for info in self.info:
             assert len(info.strip().split()) == 2, info
+            assert osp.isfile(osp.join(self.data_dir, info.strip().split()[0])), osp.join(self.data_dir, info.strip().split()[0])
         self.transform = transform
         self.target_transform = target_transform
 
