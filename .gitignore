@@ -98,3 +98,7 @@ ENV/
 *.pyc
 
 .idea
+
+#result
+*.txt
+*.pth

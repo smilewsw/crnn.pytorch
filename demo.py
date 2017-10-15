@@ -3,17 +3,25 @@ from torch.autograd import Variable
 import utils
 import dataset
 from PIL import Image
+from collections import OrderedDict
 
 import models.crnn as crnn
 
-
-model_path = './data/crnn.pth'
-img_path = './data/demo.png'
+model_path = '/home/wangsiwei/Projects/crnn.pytorch/from_16_samples/netCRNN_3_500.pth'
+#model_path = './data/crnn.pth'
+#img_path = './data/demo.png'
+img_path = '/home/wangsiwei/ocr_data/coco_text/test/1000557.jpg'
 alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
 
 model = crnn.CRNN(32, 1, 37, 256, 1).cuda()
 print('loading pretrained model from %s' % model_path)
-model.load_state_dict(torch.load(model_path))
+#model.load_state_dict(torch.load(model_path))
+state_dict = torch.load(model_path)
+state_dict_rename = OrderedDict()
+for k, v in state_dict.items():
+    name = k[7:] # remove `module.`
+    state_dict_rename[name] = v
+model.load_state_dict(state_dict_rename)
 
 converter = utils.strLabelConverter(alphabet)
 

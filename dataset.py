@@ -13,15 +13,17 @@ from PIL import Image
 import numpy as np
 import os.path as osp
 
+alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
 
 class lmdbDataset(Dataset):
 
     def __init__(self, root=None, transform=None, target_transform=None):
-        self.data_dir = osp.join(root, 'cropped_img')
-        self.info = open(osp.join(root, 'img_gt.txt')).read().strip().split('\n')
+        self.data_dir = osp.join(root, 'img')
+        self.info = open(osp.join(root, 'gt.txt')).read().strip().split('\n')
         for info in self.info:
-            assert len(info.strip().split()) == 2, info
-            assert osp.isfile(osp.join(self.data_dir, info.strip().split()[0])), osp.join(self.data_dir, info.strip().split()[0])
+            assert len(info.strip().split(',')) == 2, '#' + info
+            assert osp.isfile(osp.join(self.data_dir, info.strip().split(',')[0])), osp.join(self.data_dir, info.strip().split(',')[0])
+        self.info.sort(key=lambda obj:len(obj[1]), reverse=False)
         self.transform = transform
         self.target_transform = target_transform
 
@@ -30,7 +32,8 @@ class lmdbDataset(Dataset):
 
     def __getitem__(self, index):
         assert index < len(self), 'index range error'
-        name, label = self.info[index].strip().split()
+        name, label = self.info[index].strip().split(',')
+        label = "".join(list(filter(lambda ch: ch in alphabet, label.lower())))
         # img = misc.imread(osp.join(self.data_dir, name))
         img = Image.open(osp.join(self.data_dir, name)).convert('L')
         if self.transform:
