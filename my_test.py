@@ -8,7 +8,7 @@ from collections import OrderedDict
 
 import models.crnn as crnn
 
-model_path = '/home/wangsiwei/Projects/crnn.pytorch/expr/from_pretrain_sorted_length_15_500/netCRNN_2_500.pth'
+model_path = '/home/wangsiwei/Projects/crnn.pytorch/expr/from_init_pretrain/from_pretrain_sorted_length_19_500/netCRNN_0_500.pth'
 #model_path = '/home/wangsiwei/Projects/crnn.pytorch/my_models/from_pretrain_0.00005_adam/netCRNN_17_500.pth'
 #img_path = '/home/wangsiwei/ocr_data/COCO-Text-words-test/1000012.jpg'
 alphabet = '0123456789abcdefghijklmnopqrstuvwxyz'
