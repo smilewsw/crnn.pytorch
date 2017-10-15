@@ -37,6 +37,7 @@ parser.add_argument('--valInterval', type=int, default=500, help='Interval to be
 parser.add_argument('--saveInterval', type=int, default=500, help='Interval to be displayed')
 parser.add_argument('--adam', action='store_true', help='Whether to use adam (default is rmsprop)')
 parser.add_argument('--adadelta', action='store_true', help='Whether to use adadelta (default is rmsprop)')
+parser.add_argument('--SGD', action='store_true', help='Whether to use SGD (default is rmsprop)')
 parser.add_argument('--keep_ratio', action='store_true', help='whether to keep ratio for image resize')
 parser.add_argument('--random_sample', action='store_true', help='whether to sample the dataset with random sampler')
 opt = parser.parse_args()
@@ -124,6 +125,8 @@ if opt.adam:
                            betas=(opt.beta1, 0.999))
 elif opt.adadelta:
     optimizer = optim.Adadelta(crnn.parameters(), lr=opt.lr)
+elif opt.SGD:
+    optimizer = optim.SGD(crnn.parameters(), lr=opt.lr, momentum=0.9)
 else:
     optimizer = optim.RMSprop(crnn.parameters(), lr=opt.lr)
 
