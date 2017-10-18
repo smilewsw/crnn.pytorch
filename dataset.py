@@ -35,6 +35,7 @@ class lmdbDataset(Dataset):
         name, label = self.info[index].strip().split(',')
         label = "".join(list(filter(lambda ch: ch in alphabet, label.lower())))
         # img = misc.imread(osp.join(self.data_dir, name))
+        # 打开图片并转换成灰度图
         img = Image.open(osp.join(self.data_dir, name)).convert('L')
         if self.transform:
             img = self.transform(img)
