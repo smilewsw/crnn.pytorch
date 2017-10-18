@@ -60,7 +60,8 @@ class ResNet(nn.Module):
     def __init__(self, block, layers, num_classes=1000):
         self.inplanes = 64
         super(ResNet, self).__init__()
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=7, stride=2, padding=3,
+        # 输入为灰度图，nc=1
+        self.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3,
                                bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
@@ -84,10 +85,11 @@ class ResNet(nn.Module):
 
     def _make_layer(self, block, planes, blocks, stride=1):
         downsample = None
+        # (stride,1) 统一变换
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
                 nn.Conv2d(self.inplanes, planes * block.expansion,
-                          kernel_size=1, stride=stride, bias=False),
+                          kernel_size=1, stride=(stride,1), bias=False),
                 nn.BatchNorm2d(planes * block.expansion),
             )
 
@@ -112,8 +114,8 @@ class ResNet(nn.Module):
 
         # 去掉avgpool
         #x = self.avgpool(x)
-        
-        x = x.view(x.size(0), -1)
+
+        #x = x.view(x.size(0), -1)
 
         # 去掉全连接
         # x = self.fc(x)

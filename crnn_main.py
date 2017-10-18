@@ -13,7 +13,7 @@ import utils
 import dataset
 from collections import OrderedDict
 
-import models.crnn as crnn
+import models.res_crnn as crnn
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--trainroot', required=True, help='path to dataset')
@@ -95,15 +95,15 @@ crnn = crnn.CRNN(opt.imgH, nc, nclass, opt.nh, opt.ngpu)
 crnn.apply(weights_init)
 if opt.crnn != '':
     print('loading pretrained model from %s' % opt.crnn)
-    '''
+    
     state_dict = torch.load(opt.crnn)
     state_dict_rename = OrderedDict()
     for k, v in state_dict.items():
         name = k[7:] # remove `module.`
         state_dict_rename[name] = v
     crnn.load_state_dict(state_dict_rename)
-    '''
-    crnn.load_state_dict(torch.load(opt.crnn))
+    
+    #crnn.load_state_dict(torch.load(opt.crnn))
 print(crnn)
 
 image = torch.FloatTensor(opt.batchSize, 3, opt.imgH, opt.imgH)
@@ -209,7 +209,7 @@ def trainBatch(net, criterion, optimizer):
             total_norm += param_norm ** norm_type
         total_norm = total_norm ** (1. / norm_type)
     #gradient clipping
-    torch.nn.utils.clip_grad_norm(crnn.parameters(), opt.clip)
+    #torch.nn.utils.clip_grad_norm(crnn.parameters(), opt.clip)
 
     optimizer.step()
 
