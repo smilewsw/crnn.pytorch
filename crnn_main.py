@@ -40,6 +40,8 @@ parser.add_argument('--adadelta', action='store_true', help='Whether to use adad
 parser.add_argument('--SGD', action='store_true', help='Whether to use SGD (default is rmsprop)')
 parser.add_argument('--keep_ratio', action='store_true', help='whether to keep ratio for image resize')
 parser.add_argument('--random_sample', action='store_true', help='whether to sample the dataset with random sampler')
+parser.add_argument('--clip', type=float, default=30, help='gradient clipping')
+
 opt = parser.parse_args()
 print(opt)
 
@@ -93,13 +95,15 @@ crnn = crnn.CRNN(opt.imgH, nc, nclass, opt.nh, opt.ngpu)
 crnn.apply(weights_init)
 if opt.crnn != '':
     print('loading pretrained model from %s' % opt.crnn)
+    '''
     state_dict = torch.load(opt.crnn)
     state_dict_rename = OrderedDict()
     for k, v in state_dict.items():
         name = k[7:] # remove `module.`
         state_dict_rename[name] = v
     crnn.load_state_dict(state_dict_rename)
-    #crnn.load_state_dict(torch.load(opt.crnn))
+    '''
+    crnn.load_state_dict(torch.load(opt.crnn))
 print(crnn)
 
 image = torch.FloatTensor(opt.batchSize, 3, opt.imgH, opt.imgH)
@@ -175,7 +179,7 @@ def val(net, dataset, criterion, max_iter=100):
         print('%-20s => %-20s, gt: %-20s' % (raw_pred, pred, gt))
 
     accuracy = n_correct / float(max_iter * opt.batchSize)
-    print('Test loss: %f, accuray: %f' % (loss_avg.val(), accuracy))
+    print('Test loss: %f, accuracy: %f' % (loss_avg.val(), accuracy))
 
 
 def trainBatch(net, criterion, optimizer):
@@ -192,10 +196,36 @@ def trainBatch(net, criterion, optimizer):
     cost = criterion(preds, text, preds_size, length) / batch_size
     crnn.zero_grad()
     cost.backward()
+
+    #计算梯度norm
+    parameters = list(filter(lambda p: p.grad is not None, crnn.parameters()))
+    norm_type = float(2)
+    if norm_type == float('inf'):
+        total_norm = max(p.grad.data.abs().max() for p in parameters)
+    else:
+        total_norm = 0
+        for p in parameters:
+            param_norm = p.grad.data.norm(norm_type)
+            total_norm += param_norm ** norm_type
+        total_norm = total_norm ** (1. / norm_type)
+    #gradient clipping
+    torch.nn.utils.clip_grad_norm(crnn.parameters(), opt.clip)
+
     optimizer.step()
-    return cost
 
+    n_correct = 0
+    _, preds = preds.max(2)
+    preds = preds.squeeze(2)
+    preds = preds.transpose(1, 0).contiguous().view(-1)
+    sim_preds = converter.decode(preds.data, preds_size.data, raw=False)
+    for pred, target in zip(sim_preds, cpu_texts):
+        if pred == target.lower():
+            n_correct += 1
 
+    return cost, total_norm, n_correct
+
+norm_avg = 0
+total_correct = 0
 for epoch in range(opt.niter):
     train_iter = iter(train_loader)
     i = 0
@@ -204,14 +234,18 @@ for epoch in range(opt.niter):
             p.requires_grad = True
         crnn.train()
 
-        cost = trainBatch(crnn, criterion, optimizer)
+        cost, total_norm, n_correct = trainBatch(crnn, criterion, optimizer)
         loss_avg.add(cost)
+        norm_avg += total_norm
+        total_correct += n_correct
         i += 1
 
         if i % opt.displayInterval == 0:
-            print('[%d/%d][%d/%d] Loss: %f' %
-                  (epoch, opt.niter, i, len(train_loader), loss_avg.val()))
+            print('[%d/%d][%d/%d] Loss: %f Gradient Norm: %f Train accuracy: %f' %
+                  (epoch, opt.niter, i, len(train_loader), loss_avg.val(), norm_avg/len(train_loader), total_correct/(len(train_loader)*opt.batchSize)))
             loss_avg.reset()
+            norm_avg = 0
+            total_correct = 0
 
         if i % opt.valInterval == 0:
             val(crnn, test_dataset, criterion)
